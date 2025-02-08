@@ -1,0 +1,89 @@
+name: MainComposeStack
+services:
+    makemkv:
+        container_name: makemkv
+        ports:
+            - 5885:5800
+        restart: always
+        volumes:
+            - /docker/appdata/makemkv:/config:rw
+            - /home/user:/storage:ro
+            - /home/user/MakeMKV/output:/output:rw
+        environment:
+            - SECURE_CONNECTION=1
+            - TZ=America/Denver
+            - VNC_PASSWORD=LyG7@!3i
+        devices:
+            - /dev/sr1
+            - /dev/sg3
+        image: jlesage/makemkv
+    pms-docker:
+        container_name: plex
+        restart: always
+        network_mode: host
+        environment:
+            - TZ=America/Denver
+            - PLEX_CLAIM=claim-cgTBT_9YEGRTTzDy_D7i
+        volumes:
+            - /home/plex/.config/appdata/plex:/config
+            - /tmp/PlexTranscoding:/transcode
+            - /mnt/StorageDisk/Media:/data # thinking /mnt/<insert_hdd_name>/storage ??
+        devices:
+            - /dev/dri:/dev/dri # might need to run this command before running script to confirm the right device
+# lspci -v -s $(lspci | grep VGA | cut -d" " -f 1)
+        image: plexinc/pms-docker
+    handbrake:
+        container_name: handbrake
+        restart: always
+        ports:
+            - 5800:5800
+        volumes:
+            - /docker/appdata/handbrake:/config:rw
+            - /home/user:/storage:ro
+            - /home/user/HandBrake/watch:/watch:rw
+            - /home/user/HandBrake/output:/output:rw
+        environment:
+            - SECURE_CONNECTION=1
+            - TZ=America/Denver
+            - VNC_PASSWORD=LyG7@!3i
+        image: jlesage/handbrake
+    watchtower:
+        container_name: watchtower
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        ports:
+            - 8083:8000
+        restart: always
+        environment:
+            WATCHTOWER_DISABLE_CONTAINERS: "immich_server immich_redis immich_postgres immich_machine_learning"
+            WATCHTOWER_SCHEDULE: "0 1 * * 7"
+            WATCHTOWER_CLEANUP: true
+            WATCHTOWER_NOTIFICATIONS: email
+            WATCHTOWER_NOTIFICATION_EMAIL_FROM: "watchtower.container@gmail.com"
+            WATCHTOWER_NOTIFICATION_EMAIL_TO: "awesomeboy7865@gmail.com"
+            WATCHTOWER_NOTIFICATION_EMAIL_SERVER: "smtp.gmail.com"
+            WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER: "watchtower.container@gmail.com"
+            WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD: "55NtWS1Nk2$&wk!j2*AN"
+            WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT: "587"
+            WATCHTOWER_NOTIFICATION_EMAIL_DELAY: 2
+            TZ: America/Denver
+            WATCHTOWER_NO_STARTUP_MESSAGE: true
+            WATCHTOWER_TIMEOUT: 30s
+        image: containrrr/watchtower
+    portainer-ce:
+        ports:
+            - 8000:8000
+            - 9443:9443
+        container_name: portainer
+        restart: always
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - portainer_data:/data
+        image: portainer/portainer-ce:latest
+networks:
+    default:
+        name: compose_default
+volumes:
+    portainer_data:
+        external: true
+        name: portainer_data
